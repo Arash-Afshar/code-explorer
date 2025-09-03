@@ -10,18 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_03_020309) do
-  create_table "pdfs", force: :cascade do |t|
-    t.string "name"
-    t.text "content"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "processing_status", default: "pending"
-    t.text "processing_error"
-    t.index ["processing_status"], name: "index_pdfs_on_processing_status"
-  end
-
-  create_table "sections", force: :cascade do |t|
+ActiveRecord::Schema[8.0].define(version: 2025_09_03_035336) do
+  create_table "pdf_sections", force: :cascade do |t|
     t.string "section_number"
     t.string "title"
     t.integer "page_number"
@@ -36,8 +26,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_03_020309) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "pdf_id", null: false
-    t.index ["pdf_id"], name: "index_sections_on_pdf_id"
+    t.index ["pdf_id"], name: "index_pdf_sections_on_pdf_id"
   end
 
-  add_foreign_key "sections", "pdfs"
+  create_table "pdfs", force: :cascade do |t|
+    t.string "name"
+    t.binary "content"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "processing_status", default: "pending"
+    t.text "processing_error"
+    t.index ["processing_status"], name: "index_pdfs_on_processing_status"
+  end
+
+  add_foreign_key "pdf_sections", "pdfs"
 end

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="abyss">
   <head>
     <title><%= content_for(:title) || "New App" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -23,7 +23,59 @@
   </head>
 
   <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+    <!-- Navigation Bar -->
+    <div class="navbar bg-base-100 shadow-lg">
+      <div class="navbar-start">
+        <div class="dropdown">
+          <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"></path>
+            </svg>
+          </div>
+          <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+            <li><%= link_to "Search", search_index_path %></li>
+            <li><%= link_to "PDFs", pdfs_path %></li>
+          </ul>
+        </div>
+        <%= link_to root_path, class: "btn btn-ghost text-xl" do %>
+          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          PDF Manager
+        <% end %>
+      </div>
+      <div class="navbar-end hidden lg:flex">
+        <ul class="menu menu-horizontal px-1">
+          <li><%= link_to "Search", search_index_path %></li>
+          <li><%= link_to "PDFs", pdfs_path %></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <% if notice %>
+      <div class="toast toast-end">
+        <div class="alert alert-success">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span><%= notice %></span>
+        </div>
+      </div>
+    <% end %>
+
+    <% if alert %>
+      <div class="toast toast-end">
+        <div class="alert alert-error">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span><%= alert %></span>
+        </div>
+      </div>
+    <% end %>
+
+    <main>
       <%= yield %>
     </main>
   </body>

@@ -1,14 +1,10 @@
 class Pdf < ApplicationRecord
-  has_many :sections, dependent: :destroy
+  has_many :pdf_sections, dependent: :destroy
 
-  validates :name, presence: true
   validates :content, presence: true
-
-  before_save :process_uploaded_file
+  validates :name, presence: true
 
   def extract
-    require "toc_extract"
-
     # Create a temporary file from the binary content
     temp_file = Tempfile.new([ "pdf", ".pdf" ])
     temp_file.binmode
@@ -19,12 +15,12 @@ class Pdf < ApplicationRecord
       toc_start_page = 1 # This true only for pdfs in cb-mpc
       toc_end_page = find_toc_end_page(temp_file.path)
 
-      # Use the new extract method to get TOC data
       sections = TocExtract.extract(temp_file.path, nil, toc_start_page, toc_end_page)
 
       require "pdf/reader"
       require "pdf/reader/find_text"
 
+      content_parts = []
       PDF::Reader.open(temp_file.path) do |reader|
         reader.pages.each_with_index do |page, page_num|
           page.extend(PDF::Reader::FindText)
@@ -40,6 +36,10 @@ class Pdf < ApplicationRecord
 
       return sections, content
 
+    rescue => e
+      Rails.logger.error "PDF extraction failed: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      raise e
     ensure
       temp_file.close
       temp_file.unlink
@@ -47,12 +47,6 @@ class Pdf < ApplicationRecord
   end
 
   private
-
-  def process_uploaded_file
-    if content.is_a?(ActionDispatch::Http::UploadedFile)
-      self.content = content.read
-    end
-  end
 
   # Find the TOC end page by looking for the second appearance of "Dependencies"
   # This true only for pdfs in cb-mpc
@@ -70,7 +64,7 @@ class Pdf < ApplicationRecord
           dependencies_count += 1
 
           if dependencies_count == 2
-            toc_end_page = page_num
+            toc_end_page = page_num - 1
             break
           end
         end
