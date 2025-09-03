@@ -63,3 +63,6 @@ group :test do
 end
 
 gem "tailwindcss-rails", "~> 4.3"
+
+# To extract table of contents from pdf files
+gem "toc_extract", "~> 0.2.0"
