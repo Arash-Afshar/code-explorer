@@ -61,6 +61,29 @@ class PdfsController < ApplicationController
     redirect_to pdfs_path, notice: "PDF '#{pdf_name}' was successfully deleted."
   end
 
+  def preview
+    @pdf = Pdf.find(params[:id])
+    section_number = params[:section]
+
+    respond_to do |format|
+      format.json do
+        begin
+          preview_img = @pdf.preview(section_number)
+          render json: {
+            success: true,
+            preview_image: preview_img
+          }
+        rescue => e
+          Rails.logger.error "Preview generation failed: #{e.message}"
+          render json: {
+            success: false,
+            error: e.message
+          }, status: :internal_server_error
+        end
+      end
+    end
+  end
+
   private
 
   def pdf_params

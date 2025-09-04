@@ -5,7 +5,6 @@ class Pdf < ApplicationRecord
   validates :name, presence: true
 
   def extract
-    # Create a temporary file from the binary content
     temp_file = Tempfile.new([ "pdf", ".pdf" ])
     temp_file.binmode
     temp_file.write(self.content)
@@ -20,26 +19,41 @@ class Pdf < ApplicationRecord
       require "pdf/reader"
       require "pdf/reader/find_text"
 
-      content_parts = []
-      PDF::Reader.open(temp_file.path) do |reader|
-        reader.pages.each_with_index do |page, page_num|
-          page.extend(PDF::Reader::FindText)
-          runs = page.runs(merge: false)
-
-          runs.each do |run|
-            content_parts << run.text
-          end
-        end
-      end
-
-      content = content_parts.join
-
-      return sections, content
+      return sections, self.content
 
     rescue => e
       Rails.logger.error "PDF extraction failed: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
       raise e
+    ensure
+      temp_file.close
+      temp_file.unlink
+    end
+  end
+
+  def preview(section_number)
+    require "toc_extract"
+
+    temp_file = Tempfile.new([ "pdf", ".pdf" ])
+    temp_file.binmode
+    temp_file.write(content)
+    temp_file.rewind
+
+    begin
+      crop_width = 500
+      crop_height = 300
+
+      db_section = pdf_sections.find { |section| section.section_number == section_number }
+      section = Section.new(db_section.section_number, db_section.title, db_section.page_number)
+      section.bounding_box = { "x" => db_section.x, "y" => db_section.y, "width" => db_section.width, "endx" => db_section.endx, "endy" => db_section.endy }
+      preview_image_blob = TocExtract.preview(temp_file.path, section, crop_width, crop_height)
+
+      require "base64"
+      "data:image/png;base64,#{Base64.strict_encode64(preview_image_blob)}"
+
+    rescue => e
+      Rails.logger.error "Preview generation error: #{e.message}"
+      ""
     ensure
       temp_file.close
       temp_file.unlink

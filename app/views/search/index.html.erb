@@ -1,5 +1,316 @@
-<div>
-  <h1 class="font-bold text-4xl">Search#index</h1>
-  <p>Find me in app/views/search/index.html.erb</p>
-  <button class="btn btn-primary">Hello daisyUI!</button>
+<div class="min-h-screen bg-base-200">
+  <!-- Search Container -->
+  <div class="container mx-auto px-4 py-8">
+    <!-- Search Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-base-content mb-4">PDF Search</h1>
+      <p class="text-base-content/70">Search through your PDF documents and get instant answers</p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="max-w-2xl mx-auto mb-8">
+      <form id="searchForm">
+        <div class="join w-full">
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Ask a question or search for sections..." 
+            class="input input-lg join-item flex-1 bg-base-100 border-2 border-base-300 focus:border-primary"
+            autocomplete="off"
+          />
+          <button 
+            type="submit" 
+            id="searchButton"
+            class="btn btn-primary btn-lg join-item"
+            disabled
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="hidden text-center mb-8">
+      <div class="loading loading-spinner loading-lg text-primary"></div>
+      <p class="mt-4 text-base-content/70">Searching through your documents...</p>
+    </div>
+
+    <!-- Results Container -->
+    <div id="resultsContainer" class="max-w-4xl mx-auto space-y-6">
+      <!-- Results will be dynamically inserted here -->
+    </div>
+
+    <!-- No Results Message -->
+    <div id="noResults" class="hidden text-center py-12">
+      <div class="max-w-md mx-auto">
+        <svg class="w-16 h-16 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33"></path>
+        </svg>
+        <h3 class="text-xl font-semibold text-base-content mb-2">No results found</h3>
+        <p class="text-base-content/70">Try different keywords or ask a general question about your documents.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hover Preview Tooltip -->
+  <div id="hoverPreview" class="fixed z-50 hidden bg-base-100 border border-base-300 rounded-lg shadow-xl pointer-events-none">
+    <img id="previewImage" src="" alt="Section Preview" class="max-w-xs max-h-64 object-contain rounded-lg">
+  </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchForm = document.getElementById('searchForm');
+  const searchInput = document.getElementById('searchInput');
+  const searchButton = document.getElementById('searchButton');
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  const resultsContainer = document.getElementById('resultsContainer');
+  const noResults = document.getElementById('noResults');
+  const hoverPreview = document.getElementById('hoverPreview');
+  const previewImage = document.getElementById('previewImage');
+
+  // Enable/disable search button based on input
+  searchInput.addEventListener('input', function() {
+    searchButton.disabled = !this.value.trim();
+  });
+
+  // Handle form submission
+  searchForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const query = searchInput.value.trim();
+    if (!query) return;
+
+    performSearch(query);
+  });
+
+  // Handle Enter key
+  searchInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const query = this.value.trim();
+      if (!query) return;
+
+      performSearch(query);
+    }
+  });
+
+  function performSearch(query) {
+    // Show loading state
+    loadingIndicator.classList.remove('hidden');
+    resultsContainer.innerHTML = '';
+    noResults.classList.add('hidden');
+
+    // Disable search button during search
+    searchButton.disabled = true;
+
+    // Make AJAX request
+    fetch(`/search/index?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      displayResults(data, query);
+    })
+    .catch(error => {
+      console.error('Search error:', error);
+      showError('An error occurred while searching. Please try again.');
+    })
+    .finally(() => {
+      loadingIndicator.classList.add('hidden');
+      searchButton.disabled = false;
+    });
+  }
+
+  function displayResults(data, query) {
+    resultsContainer.innerHTML = '';
+
+    // Show LLM response if available
+    if (data.llm_response) {
+      const llmCard = createLLMCard(data.llm_response, query);
+      resultsContainer.appendChild(llmCard);
+    }
+
+    // Show search results if available
+    if (data.results && data.results.length > 0) {
+      data.results.forEach(result => {
+        const resultCard = createResultCard(result);
+        resultsContainer.appendChild(resultCard);
+      });
+    }
+
+    // Show no results message if no results and no LLM response
+    if ((!data.results || data.results.length === 0) && !data.llm_response) {
+      noResults.classList.remove('hidden');
+    }
+  }
+
+  function createLLMCard(response, query) {
+    const card = document.createElement('div');
+    card.className = 'card bg-base-100 shadow-lg';
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="flex items-start gap-3">
+          <div class="avatar placeholder">
+            <div class="bg-primary text-primary-content rounded-full w-10">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-base-content mb-2">AI Response</h3>
+            <p class="text-base-content/80 leading-relaxed">${response}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  function createResultCard(result) {
+    const card = document.createElement('div');
+    card.className = 'card bg-base-100 shadow-lg';
+
+    const sectionsHtml = result.sections.map(section => `
+      <div class="section-item hover:bg-base-200 p-3 rounded-lg cursor-pointer transition-colors" 
+           data-pdf-id="${result.pdf_id}" 
+           data-section-number="${section.section_number}" 
+           data-section-title="${section.title}"
+           data-section-page="${section.page || 'N/A'}">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <h4 class="font-medium text-base-content">${section.title}</h4>
+            <p class="text-sm text-base-content/60">Page ${section.page || 'N/A'}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="badge badge-outline">${result.pdf_name}</span>
+            <svg class="w-4 h-4 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="avatar placeholder">
+            <div class="bg-secondary text-secondary-content rounded-full w-10">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <h3 class="font-semibold text-base-content">${result.pdf_name}</h3>
+            <p class="text-sm text-base-content/60">${result.sections.length} section${result.sections.length !== 1 ? 's' : ''} found</p>
+          </div>
+        </div>
+        <div class="space-y-2">
+          ${sectionsHtml}
+        </div>
+      </div>
+    `;
+
+    // Add hover event listeners for preview
+    const sectionItems = card.querySelectorAll('.section-item');
+    sectionItems.forEach(item => {
+      let previewTimeout;
+
+      item.addEventListener('mouseenter', function(e) {
+        const pdfId = this.dataset.pdfId;
+        const sectionNumber = this.dataset.sectionNumber;
+
+        showHoverPreview(pdfId, sectionNumber, e);
+      });
+
+      item.addEventListener('mouseleave', function() {
+        clearTimeout(previewTimeout);
+        hideHoverPreview();
+      });
+
+      item.addEventListener('mousemove', function(e) {
+        if (hoverPreview.classList.contains('hidden')) return;
+        updatePreviewPosition(e);
+      });
+    });
+
+    return card;
+  }
+
+  function showHoverPreview(pdfId, sectionNumber, event) {
+    // Show loading state
+    previewImage.src = '';
+    hoverPreview.classList.remove('hidden');
+    updatePreviewPosition(event);
+
+    // Make AJAX request to get preview image
+    fetch(`/pdfs/${pdfId}/preview?section=${sectionNumber}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.preview_image) {
+        previewImage.src = data.preview_image;
+      } else {
+        // Hide preview if no image available
+        hideHoverPreview();
+      }
+    })
+    .catch(error => {
+      console.error('Preview error:', error);
+      hideHoverPreview();
+    });
+  }
+
+  function hideHoverPreview() {
+    hoverPreview.classList.add('hidden');
+    previewImage.src = '';
+  }
+
+  function updatePreviewPosition(event) {
+    const offset = 15; // Distance from cursor
+    const preview = hoverPreview;
+    const rect = preview.getBoundingClientRect();
+
+    // Calculate position
+    let left = event.clientX + offset;
+    let top = event.clientY + offset;
+
+    // Ensure preview doesn't go off-screen
+    if (left + rect.width > window.innerWidth) {
+      left = event.clientX - rect.width - offset;
+    }
+    if (top + rect.height > window.innerHeight) {
+      top = event.clientY - rect.height - offset;
+    }
+
+    // Apply position
+    preview.style.left = left + 'px';
+    preview.style.top = top + 'px';
+  }
+
+
+
+  function showError(message) {
+    resultsContainer.innerHTML = `
+      <div class="alert alert-error">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>${message}</span>
+      </div>
+    `;
+  }
+});
+</script>

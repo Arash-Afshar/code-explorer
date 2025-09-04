@@ -66,3 +66,9 @@ gem "tailwindcss-rails", "~> 4.3"
 
 # To extract table of contents from pdf files
 gem "toc_extract", "~> 0.2.0"
+
+# HTTP client for API calls
+gem "httparty"
+
+# Image processing for PDF previews
+gem "rmagick"

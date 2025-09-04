@@ -12,5 +12,9 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   root "search#index"
-  resources :pdfs
+  resources :pdfs do
+    member do
+      get :preview
+    end
+  end
 end
