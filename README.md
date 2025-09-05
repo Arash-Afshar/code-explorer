@@ -9,5 +9,9 @@ In the first phase, you can upload the pdfs and parse them so that it is searcha
 
 
 
+https://github.com/user-attachments/assets/1680a2e4-7992-45dc-891b-bb74f80291b1
+
+
+
 ## Phase 2
 TODO: In the second phase you can also search the code.
