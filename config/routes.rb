@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   resources :pdfs do
     member do
       get :preview
+      get :file
     end
   end
 end

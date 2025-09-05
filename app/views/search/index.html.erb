@@ -62,6 +62,10 @@
 </div>
 
 <script>
+  function goToPageInNewTab(pdfId, pageNum) {
+    const pdfUrl = `/pdfs/${pdfId}/file#page=${pageNum+1}&toolbar=1&navpanes=1&scrollbar=1`;
+    window.open(pdfUrl, '_blank');
+  }
 document.addEventListener('DOMContentLoaded', function() {
   const searchForm = document.getElementById('searchForm');
   const searchInput = document.getElementById('searchInput');
@@ -179,6 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const sectionsHtml = result.sections.map(section => `
       <div class="section-item hover:bg-base-200 p-3 rounded-lg cursor-pointer transition-colors" 
+           onclick="goToPageInNewTab(${result.pdf_id}, ${section.page})"
            data-pdf-id="${result.pdf_id}" 
            data-section-number="${section.section_number}" 
            data-section-title="${section.title}"
@@ -187,12 +192,6 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="flex-1">
             <h4 class="font-medium text-base-content">${section.title}</h4>
             <p class="text-sm text-base-content/60">Page ${section.page || 'N/A'}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="badge badge-outline">${result.pdf_name}</span>
-            <svg class="w-4 h-4 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
           </div>
         </div>
       </div>

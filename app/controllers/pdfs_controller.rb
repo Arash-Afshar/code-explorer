@@ -84,6 +84,22 @@ class PdfsController < ApplicationController
     end
   end
 
+  def file
+    @pdf = Pdf.find(params[:id])
+
+    unless @pdf.content.present?
+      render json: { error: "PDF content not available" }, status: :not_found
+      return
+    end
+
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = "inline; filename=\"#{@pdf.name}\""
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["Content-Length"] = @pdf.content.bytesize.to_s
+
+    send_data @pdf.content, type: "application/pdf", disposition: "inline"
+  end
+
   private
 
   def pdf_params
